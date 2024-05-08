@@ -1,7 +1,7 @@
 import cv2 # open cv
 from cvzone.HandTrackingModule import HandDetector
 import time
-
+import math
 
 class Button:
     def __init__(self, pos, width, height, value):
@@ -11,13 +11,10 @@ class Button:
         self.value = value
 
     def draw(self, img):
-
         cv2.rectangle(img, self.pos, (self.pos[0]+self.width,
                       self.pos[1]+self.height), (225, 225, 225), cv2.FILLED)
-        
         cv2.rectangle(img, self.pos, (self.pos[0]+self.width,
                       self.pos[1]+self.height), (50, 50, 50), 3)
-
         cv2.putText(img, self.value, (self.pos[0]+40, self.pos[1]+60),
                     cv2.FONT_HERSHEY_PLAIN, 2, (50, 50, 50), 2)
 
@@ -28,10 +25,8 @@ class Button:
                                           self.pos[1]+self.height), (255, 255, 255), cv2.FILLED)
             cv2.rectangle(img, self.pos, (self.pos[0]+self.width,
                                           self.pos[1]+self.height), (50, 50, 50), 3)
-
             cv2.putText(img, self.value, (self.pos[0]+25, self.pos[1]+80),
                         cv2.FONT_HERSHEY_PLAIN, 5, (0, 0, 0), 5)
-
             return True
         else:
             return False
@@ -47,15 +42,16 @@ detector = HandDetector(detectionCon=0.8, maxHands=1)
 buttonListValues = [['7', '8', '9', '*'],
                     ['4', '5', '6', '-'],
                     ['1', '2', '3', '+'],
-                    ['0', '/', '.', '='],]
+                    ['0', '/', 'C', '='],
+                    ['sqr', '^', '<-', ''],]  # Added buttons for square root and power
 buttonList = []
 for x in range(4): # x1 y2
-    for y in range(4):
+    for y in range(5):
         xpos = x*100 + 650
         ypos = y*100 + 150
         buttonList.append(
             Button((xpos, ypos), 100, 100, buttonListValues[y][x]),)
-print([buttonList])
+        
 
 # Variables
 myEquation = ''
@@ -71,7 +67,7 @@ while True:
     # Detection of hand
     hands, img = detector.findHands(img, flipType=False)
 
-    # Draw all buttons
+    # Draw all buttons  body of calc
     cv2.rectangle(img, (650, 50), (650 + 400, 70 + 100),
                   (225, 225, 225), cv2.FILLED)
     cv2.rectangle(img, (650, 50), (650+400, 70+100),
@@ -88,10 +84,22 @@ while True:
         x, y = lmList[8][0:2]
         if length < 50:
             for i, button in enumerate(buttonList):
-                if button.checkClick(x, y) and delayCounter == 0:
-                    myValue = buttonListValues[int(i % 4)][int(i/4)]
+                col = i // 5  # Calculate the column index
+                row = i % 5   # Calculate the row index
+                xpos, ypos = button.pos
+                width, height = button.width, button.height
+                if xpos < x < xpos + width and ypos < y < ypos + height and delayCounter == 0:
+                    myValue = buttonListValues[row][col]
                     if myValue == "=":
                         myEquation = str(eval(myEquation))
+                    elif myValue == 'C':
+                        myEquation=''
+                    elif myValue == 'sqr':
+                        myEquation = str(math.sqrt(float(myEquation)))
+                    elif myValue == '^':
+                        myEquation += '*'
+                    elif myValue == '<-':  # Backspace button
+                        myEquation = myEquation[:-1] 
                     else:
                         myEquation += myValue
                     delayCounter = 1
@@ -111,23 +119,3 @@ while True:
     key = cv2.waitKey(1)
     if key == ord('c'):
         myEquation = ''
-
-
-
-
-
-
-
-
-# int(i % 4) calculates the column index:
-
-# When i is 0, 1, 2, or 3, int(i % 4) will be 0, indicating the first column.
-# When i is 4, 5, 6, or 7, int(i % 4) will be 1, indicating the second column.
-# When i is 8, 9, 10, or 11, int(i % 4) will be 2, indicating the third column.
-# When i is 12, 13, 14, or 15, int(i % 4) will be 3, indicating the fourth column.
-# int(i/4) calculates the row index:
-
-# When i is 0, 4, 8, or 12, int(i/4) will be 0, indicating the first row.
-# When i is 1, 5, 9, or 13, int(i/4) will be 1, indicating the second row.
-# When i is 2, 6, 10, or 14, int(i/4) will be 2, indicating the third row.
-# When i is 3, 7, 11, or 15, int(i/4) will be 3, indicating the fourth row.
